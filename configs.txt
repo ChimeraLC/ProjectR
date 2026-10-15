@@ -1,0 +1,2 @@
+DebugDrawGrid 0
+DebugDrawUnitHitboxes 0

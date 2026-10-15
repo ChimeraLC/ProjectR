@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://Game/Player/Units/BaseUnit.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Game/Player/InputManager.tscn" type="PackedScene" id=2]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="BaseUnit" parent="." instance=ExtResource( 1 )]
+position = Vector2( 268, 479 )
+
+[node name="BaseUnit2" parent="." instance=ExtResource( 1 )]
+position = Vector2( 553, 501 )
+
+[node name="BaseUnit3" parent="." instance=ExtResource( 1 )]
+position = Vector2( 705, 394 )
+
+[node name="BaseUnit4" parent="." instance=ExtResource( 1 )]
+position = Vector2( 456, 340 )
+
+[node name="InputManager" parent="." instance=ExtResource( 2 )]
