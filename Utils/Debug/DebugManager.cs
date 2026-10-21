@@ -10,6 +10,11 @@ public static class DebugManager
             return debugFlags[flag];
         return 0;
     }
+    public static bool CheckFlag(string flag)
+    {
+        return GetFlag(flag) != 0;
+    }
+
 
     public static void SetFlag(string flag, int value)
     {

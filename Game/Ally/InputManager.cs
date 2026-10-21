@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 
 public enum InputMode
@@ -24,12 +26,16 @@ public partial class InputManager : Node2D
         selectedUnits = new HashSet<GridNode>();
     }
 
+    public int GetSelectionCount() { return selectedUnits.Count; }
+
     public void Tick(float delta)
     {
         if (Input.IsActionJustPressed("key_select"))
         {
             mouseDown = GameManager.GetMousePosition();
             dragging = false;
+
+            GameManager.gridManager.GetClosestNode(mouseDown, 200);
         }
 
         if (Input.IsActionPressed("key_select"))
@@ -62,7 +68,74 @@ public partial class InputManager : Node2D
             dragging = false;
         }
 
+        if (Input.IsActionJustPressed("key_move"))
+        {
+            // Check if it's a move, or a target
+            mouseCurrent = GameManager.GetMousePosition();
+            GridNode potentialTarget = GameManager.gridManager.GetNodeAtPosition(mouseCurrent);
+            if (potentialTarget is BaseEnemy potentialEnemy)
+            {
+                foreach (GridNode node in selectedUnits)
+                {
+                    if (node is BaseUnit unit)
+                    {
+                        unit.SetUnitTarget(potentialEnemy);
+                    }
+                }
+            }
+            else // Moving towards a location
+            {
+                SetUnitTargeLocation(false);
+            }
+        }
+
+        if (Input.IsActionJustPressed("key_attackMove"))
+        {
+            SetUnitTargeLocation(true);
+        }
+
         Update();
+    }
+
+    private void SetUnitTargeLocation(bool attacking)
+    {
+        // Basic 'don't overlap' code
+        if (selectedUnits.Count == 1)
+        {
+            if (selectedUnits.First() is BaseUnit unit)
+            {
+                if (attacking)
+                {
+                    unit.SetAttackMoveTarget(GameManager.GetMousePosition());
+                }
+                else
+                {
+                    unit.SetMoveTarget(GameManager.GetMousePosition());
+                }
+            }
+        }
+        else if (selectedUnits.Count >= 2)
+        {
+            int index = 0;
+            float angle = 2 * Mathf.Pi / selectedUnits.Count;
+            foreach (GridNode node in selectedUnits)
+            {
+                index += 1;
+                if (node is BaseUnit unit)
+                {
+                    Vector2 targetPosition = GameManager.GetMousePosition()
+                        + 16 * new Vector2(Mathf.Cos(index * angle), Mathf.Sin(index * angle));
+                    if (attacking)
+                    {
+                        unit.SetAttackMoveTarget(targetPosition);
+                    }
+                    else
+                    {
+                        unit.SetMoveTarget(targetPosition);
+                    }
+                }
+            }
+        }
     }
 
     public override void _Draw()

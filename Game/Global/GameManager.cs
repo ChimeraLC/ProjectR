@@ -6,10 +6,14 @@ public partial class GameManager : Node2D
     public static GridManager gridManager { get; private set; }
 
     public static InputManager inputManager { get; private set; }
+    public static PlayerController playerController { get; private set; }
 
     // Only calculate mouse position once per frame
     private Vector2 mousePosition;
     public static bool IsPaused { get; private set; }
+
+    public static Font DefaultFont;
+
     public override void _Ready()
     {
         Instance = this;
@@ -19,7 +23,10 @@ public partial class GameManager : Node2D
 
         SetupDebugConfigs();
 
+        // Draw above everything else
         ZIndex = 1000;
+
+        DefaultFont = new Control().GetFont("font");
     }
 
     public static float GetTimeDilation()
@@ -51,8 +58,10 @@ public partial class GameManager : Node2D
         if (inputManager != null)
             inputManager.Tick(delta);   
 
-        if (gridManager != null)
-            gridManager.Tick(delta);
+        if (playerController != null)
+            playerController.Tick(delta);
+
+        gridManager.Tick(delta);
     }
 
     /// <summary> Force ends the game from anywhere </summary>
@@ -106,6 +115,23 @@ public partial class GameManager : Node2D
         {
             gridManager.DrawUnitHitboxes(this);
         }
+
+        if (DebugManager.GetFlag("DebugDisplayStats") > 0)
+        {
+            displayStats();
+        }
+    }
+
+    private void displayStats()
+    {
+        // Selection count
+        string statString = "";
+
+        // Selection count
+        if (inputManager != null)
+            statString += $"Selected: {inputManager.GetSelectionCount()}\n";
+
+        DrawString(DefaultFont, new Vector2(40, 40), statString);
     }
 
 }

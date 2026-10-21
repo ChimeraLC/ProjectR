@@ -3,6 +3,7 @@ using System;
 
 public enum GridNodeType
 {
+    Invalid,    // For queries and things
     Ally,
     Enemy,
     Generic
@@ -15,6 +16,9 @@ public abstract class GridNode : Node2D, HitboxOwner
 {
     public int gridIndex = 0;
     public GridNodeType nodeType;
+    public bool inPlay = true;
+
+    public int targetBuffer = 0; // For large units, extra buffer for finding 'closest enemy'
     public virtual void Initialize(Vector2 position, GridNodeType nodeType)
     {
         this.nodeType = nodeType;
@@ -30,9 +34,12 @@ public abstract class GridNode : Node2D, HitboxOwner
         GameManager.gridManager.MoveGridNode(this, newPosition);
     }
 
+    public new virtual Vector2 GetPosition() { return GlobalPosition; }
+
     public virtual void Destroy(Vector2 position)
     {
         GameManager.gridManager.RemoveGridNode(this);
+        inPlay = false;
     }
 
     // Hitbox interface

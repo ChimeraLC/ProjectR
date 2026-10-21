@@ -11,10 +11,6 @@ public partial class GridManager
     private readonly int gridWidth;
     private readonly int gridHeight;
 
-#if DEBUG
-    private Font defaultFont;
-#endif // #if DEBUG
-
     private HashSet<GridNode>[] gridNodes;
 
     // Full hashsets of all the units for tick purposes
@@ -43,9 +39,6 @@ public partial class GridManager
         EnemyUnits = new HashSet<GridNode>();
         GenericUnits = new HashSet<GridNode>();
 
-#if DEBUG
-        defaultFont = new Control().GetFont("font");
-#endif // #if DEBUG
     }
     
     public void Tick(float delta)
@@ -117,7 +110,7 @@ public partial class GridManager
     }
 
 // MARK: Querying Nodes
-    public GridNode GetNodeAtPosition(Vector2 position)
+    public GridNode GetNodeAtPosition(Vector2 position, GridNodeType queryType = GridNodeType.Invalid)
     {
         // Check all nearby grids
         for (int i = -1; i <= 1; i++)
@@ -127,15 +120,71 @@ public partial class GridManager
                 int queryIndex = GetGridIndex(position + new Vector2(i, j) * gridSize);
                 foreach (GridNode node in gridNodes[queryIndex])
                 {
-                    node.UpdateHitbox();
-                    if (node.GetHitbox().GetContainsHit(position).Item1)
+                    if (queryType == GridNodeType.Invalid || queryType == node.nodeType)
                     {
-                        return node;
+                        node.UpdateHitbox();
+                        if (node.GetHitbox().GetContainsHit(position).Item1)
+                        {
+                            return node;
+                        }
                     }
                 }
             }
         }
         return null;
+    }
+
+    private Vector2[] spiralCorners = new Vector2[] { new Vector2(-1, -1), new Vector2(-1, 1), new Vector2(1, 1), new Vector2(1, -1) };
+    private Vector2[] spiralSides = new Vector2[] { Vector2.Right, Vector2.Up, Vector2.Left, Vector2.Down };
+
+    public GridNode GetClosestNode(Vector2 position, float radius, GridNodeType queryType = GridNodeType.Invalid)
+    {
+        float maxRadius = radius * radius;
+        GridNode foundNode = null;
+        bool earlyExit = false;
+        // Spiral out from current position to find the closest node
+        // Doesn't include extra size from hitboxes. Just center position?
+        for (int spiralRadius = 0; spiralRadius * gridSize < radius + gridSize; spiralRadius += 1)
+        {
+            // If we already found a node, we at most have to check one more spiral outwards
+            if (earlyExit)
+                break;
+            if (foundNode != null)
+                earlyExit = true;
+
+            // Outer ring
+            int ringSize = 8 * spiralRadius;
+            for (int i = 0; i < ringSize; i++)
+            {
+                int cornerIndex = i % 4;
+                int sideIndex = i / 4;
+                //Vector2 corner = new Vector2((cornerIndex >> 1) * 2 - 1, cornerIndex % 2 * 2 - 1); // (-1, -1), (-1, 1), (1, -1), (1, 1)
+                //Vector2 sideDirection = new Vector2(Mathf.Cos(Mathf.Pi / 2 * cornerIndex), -Mathf.Sin(Mathf.Pi / 2 * cornerIndex));// God will punish me for my sins
+
+                // Get position on ring                
+                Vector2 spiralPosition = position + 
+                (spiralRadius == 0 ? Vector2.Zero : 
+                    gridSize * (spiralCorners[cornerIndex] * spiralRadius + sideIndex * spiralSides[cornerIndex])
+                );
+
+                // Check nodes at that position
+                int queryIndex = GetGridIndex(spiralPosition);
+                foreach (GridNode node in gridNodes[queryIndex])
+                {
+                    if (queryType == GridNodeType.Invalid || queryType == node.nodeType)
+                    {
+                        float distance = (node.GetPosition() - position).LengthSquared();
+                        if (distance < maxRadius)
+                        {
+                            maxRadius = distance;
+                            foundNode = node;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return foundNode;
     }
 
     public void PushContainedNodes(Vector2 point1, Vector2 point2, HashSet<GridNode> outArray)
@@ -217,7 +266,7 @@ public partial class GridManager
             for (int j = gridSize / 2; j < Consts.ScreenHeight; j+= gridSize)
             {
                 int gridIndex = GetGridIndex(new Vector2(i, j));
-                drawBase.DrawString(defaultFont, new Vector2(i - 35, j - 25), gridNodes[gridIndex].Count.ToString());
+                drawBase.DrawString(GameManager.DefaultFont, new Vector2(i - 35, j - 25), gridNodes[gridIndex].Count.ToString());
             }
         }
     }

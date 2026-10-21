@@ -28,11 +28,11 @@ public static partial class Utils
 
         if (curDistance < padding) 
         {
-            return (start + curDistance * Mathf.Sign(start - end), false);
+            return (start + distance * Mathf.Sign(start - end), false);
         }
         else
         {
-            return (start + curDistance * Mathf.Sign(end - start), false);   
+            return (start + distance * Mathf.Sign(end - start), false);   
         }
     }
 

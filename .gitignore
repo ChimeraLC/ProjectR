@@ -17,3 +17,7 @@ mono_crash.*.json
 
 # VS Code
 .vscode/
+
+# Content assets
+.SourceAssets/
+*.tscn
