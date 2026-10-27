@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Dynamic;
 using Godot;
 
+public delegate void NodeDelegate(GridNode node);
+
 /// <summary>
 /// Tracks placement of all nodes on the screen
 /// </summary>
@@ -120,12 +122,15 @@ public partial class GridManager
                 int queryIndex = GetGridIndex(position + new Vector2(i, j) * gridSize);
                 foreach (GridNode node in gridNodes[queryIndex])
                 {
-                    if (queryType == GridNodeType.Invalid || queryType == node.nodeType)
+                    if (node.inPlay)
                     {
-                        node.UpdateHitbox();
-                        if (node.GetHitbox().GetContainsHit(position).Item1)
+                        if (queryType == GridNodeType.Invalid || queryType == node.nodeType)
                         {
-                            return node;
+                            node.UpdateHitbox();
+                            if (node.GetHitbox().GetContainsHit(position).Item1)
+                            {
+                                return node;
+                            }
                         }
                     }
                 }
@@ -144,6 +149,7 @@ public partial class GridManager
         bool earlyExit = false;
         // Spiral out from current position to find the closest node
         // Doesn't include extra size from hitboxes. Just center position?
+        // TODO: round of the unecessary corners
         for (int spiralRadius = 0; spiralRadius * gridSize < radius + gridSize; spiralRadius += 1)
         {
             // If we already found a node, we at most have to check one more spiral outwards
@@ -171,13 +177,16 @@ public partial class GridManager
                 int queryIndex = GetGridIndex(spiralPosition);
                 foreach (GridNode node in gridNodes[queryIndex])
                 {
-                    if (queryType == GridNodeType.Invalid || queryType == node.nodeType)
+                    if (node.inPlay)
                     {
-                        float distance = (node.GetPosition() - position).LengthSquared();
-                        if (distance < maxRadius)
+                        if (queryType == GridNodeType.Invalid || queryType == node.nodeType)
                         {
-                            maxRadius = distance;
-                            foundNode = node;
+                            float distance = (node.GetPosition() - position).LengthSquared();
+                            if (distance < maxRadius)
+                            {
+                                maxRadius = distance;
+                                foundNode = node;
+                            }
                         }
                     }
                 }
@@ -185,6 +194,42 @@ public partial class GridManager
         }
         
         return foundNode;
+    }
+
+    // Runs the given delegate on every matching node in the radius; returns number of delegates run
+    public int ForeachDelegateInRadius(Vector2 position, float radius, NodeDelegate nodeDelegate, GridNodeType queryType = GridNodeType.Invalid)
+    {
+        float maxRadius = radius * radius;
+        int runNodes = 0;
+
+        // Do a full sweep of the large containing rect
+        // TODO: Round off the corners
+        for (float xPos = position.x - radius - gridSize; xPos <= position.x + radius + gridSize; xPos += gridSize)
+        {
+            for (float yPos = position.y - radius - gridSize; yPos <= position.y + radius + gridSize; yPos += gridSize)
+            {
+                
+                // Check nodes at that position
+                int queryIndex = GetGridIndex(new Vector2(xPos, yPos));
+                foreach (GridNode node in gridNodes[queryIndex])
+                {
+                    if (node.inPlay)
+                    {
+                        if (queryType == GridNodeType.Invalid || queryType == node.nodeType)
+                        {
+                            float distance = (node.GetPosition() - position).LengthSquared();
+                            if (distance < maxRadius)
+                            {
+                                nodeDelegate(node);
+                                runNodes ++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return runNodes;
     }
 
     public void PushContainedNodes(Vector2 point1, Vector2 point2, HashSet<GridNode> outArray)

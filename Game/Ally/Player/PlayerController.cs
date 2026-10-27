@@ -28,6 +28,20 @@ public class PlayerController : Node2D
             movementInputNow = movementInputNow.Normalized();
 
         movementInput = movementInputNow;
+
+        if (Input.IsActionJustPressed("key_slot1"))
+        {
+            GameManager.gridManager.ForeachDelegateInRadius(Position,
+                100, HealSpell, GridNodeType.Ally);
+        }
+    }
+
+    private void HealSpell(GridNode node)
+    {
+        if (node is BaseUnit unit)
+        {
+            unit.Heal(20);
+        }
     }
 
     private void TickMovement(float delta)

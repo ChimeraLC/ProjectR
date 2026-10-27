@@ -1,4 +1,4 @@
-DebugDrawGrid 1
+DebugDrawGrid 0
 DebugDrawUnitHitboxes 1
 DebugDrawUnitBehavior 1
 DebugDisplayStats 1

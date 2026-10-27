@@ -16,22 +16,27 @@ public class BaseUnit : GridNode
 {   
     private RectHitbox hitbox;
     public UnitState State {get; private set; }
-    private UnitState returnState;
+    private bool seekingState; // If it still has a seek target
 
     private Vector2 targetPosition;
     private BaseEnemy targetUnit;
     // Seeking enemies
-    private const float retargetTickLength = 1.0f; // How often it'll look for a new target
+    private const float retargetTickLength = 0.5f; // How often it'll look for a new target
     private float retargetTimer = 0.5f;
 
     // Character statics
-    public float Health {get; private set;} = 100;
+    private const float maxHealth = 100;
 
 
     public float MoveSpeed {get; private set;} = 40;
     public float AttackDistance {get; private set;} = 30;
     public float TargetRadius { get; private set;} = 250;
     public UnitAttackDelegate AttackTick {get; private set;} = null;
+    public UnitAttackDelegate PassiveTick {get; private set;} = null;
+
+    // Attack timer
+    private float attackTimer = 0;
+    private float attackSpacing = 1;
 
     public override void _Ready()
     {
@@ -40,6 +45,11 @@ public class BaseUnit : GridNode
         hitbox = new RectHitbox(this, GlobalPosition, new Vector2(16, 16));
     
         State = UnitState.Idle;
+
+        AttackTick = BasicAttackDelegate;
+        PassiveTick = BasicPassiveDelegate;
+
+        Health = maxHealth; // TODO: Move this into a "GetMaxHealth()" function
     }
 
     public override void Tick(float delta)
@@ -61,10 +71,12 @@ public class BaseUnit : GridNode
                 TickChasing(delta);
             break;
             case UnitState.Attacking:
-                if (AttackTick != null)
-                    AttackTick(delta);
+                TickAttacking(delta);
             break;
         }
+
+        if (PassiveTick != null)
+            PassiveTick(delta);
 
 #if DEBUG
         Update();
@@ -77,7 +89,7 @@ public class BaseUnit : GridNode
             targetPosition, delta * MoveSpeed);
         SetPosition(newPosition);
         if (reached)
-            State = returnState;
+            State = UnitState.Idle;
     }
 
     private void TickWatching(float delta)
@@ -94,9 +106,13 @@ public class BaseUnit : GridNode
         SetPosition(newPosition);
         TickRetarget(delta);
         if (reached)
+        {
             State = UnitState.Watching;
+            seekingState = false;
+        }
     }
 
+    // Has an active target it's following
     private void TickChasing(float delta)
     {
         // Retargeting
@@ -110,14 +126,14 @@ public class BaseUnit : GridNode
             if (reached)
             {
                 // TODO: Do at least one attack
-                State = UnitState.Idle;
+                State = UnitState.Attacking; // TODO: Differentiate between an idle attack, and a seeking attack
             }
         }
         else // Losing target
         {
             targetUnit = null;
             retargetTimer = 0; // Force a retarget immediately
-            State = returnState;
+            State = seekingState ? UnitState.Seeking : UnitState.Watching;
         }
     }
 
@@ -137,8 +153,24 @@ public class BaseUnit : GridNode
             else
             {
                 retargetTimer += retargetTickLength;
-                State = returnState;
             }
+        }
+    }
+
+    private void TickAttacking(float delta)
+    {
+            
+        if (targetUnit != null && targetUnit.inPlay)
+        {
+            // Run attack tick
+            if (AttackTick != null)
+                AttackTick(delta);
+        }
+        else
+        {
+            // Retarget
+            retargetTimer = 0;
+            State = seekingState ? UnitState.Seeking : UnitState.Watching;
         }
     }
 
@@ -149,21 +181,24 @@ public class BaseUnit : GridNode
 
     public void SetMoveTarget(Vector2 location)
     {
-        returnState = UnitState.Idle;
         State = UnitState.Moving;
         targetPosition = location;
     }
 
     public void SetAttackMoveTarget(Vector2 location)
     {
-        returnState = UnitState.Seeking;
+        seekingState = true;
         State = UnitState.Seeking;
         targetPosition = location;
+
+        // Immediately look for target
+        retargetTimer = 0;
     }
 
     // Sets the unit's target. Should always be non-null
     public void SetUnitTarget(BaseEnemy target)
     {
+        seekingState = false;
         if (target != null)
         {
             targetUnit = target;
@@ -175,9 +210,34 @@ public class BaseUnit : GridNode
         }
     }
 
+    public bool Heal(float healAmount)
+    {
+        Health = Mathf.Min(Health + healAmount, maxHealth);
+        return Health >= maxHealth;
+    }
+
     public override Hitbox GetHitbox()
     {   
         return hitbox;
+    }
+
+    private void BasicAttackDelegate(float delta)
+    {
+        attackTimer -= delta;
+        if (attackTimer <= delta)
+        {
+            targetUnit.DealDamage(10); // TODO: Get "Damage amount" or whatever
+        
+            attackTimer += attackSpacing;
+
+            // Return to chasing in case enemy left range during attack
+            State = UnitState.Chasing;
+        }
+    }
+
+    private void BasicPassiveDelegate(float delta)
+    {
+        attackTimer = Mathf.Max(0, attackTimer - delta);
     }
 
 #if DEBUG
@@ -185,6 +245,7 @@ public class BaseUnit : GridNode
     {
         if (DebugManager.CheckFlag("DebugDrawUnitBehavior"))
         {
+            // Draw behavior
             switch (State)
             {
                 case UnitState.Moving:
@@ -197,7 +258,11 @@ public class BaseUnit : GridNode
                 case UnitState.Chasing:
                     DrawLine(Vector2.Zero, targetUnit.GetPosition() - GlobalPosition, Colors.Red);
                 break;
-            }
+            }     
+            
+            // Draw health
+            float healthPercentage = Health / maxHealth;
+            DrawLine(new Vector2(-16 * healthPercentage, -40), new Vector2(16 * healthPercentage, -40), Colors.Red, 4);
         }
     }
 #endif // #if DEBUG

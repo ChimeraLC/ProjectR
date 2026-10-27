@@ -70,41 +70,46 @@ public partial class InputManager : Node2D
 
         if (Input.IsActionJustPressed("key_move"))
         {
-            // Check if it's a move, or a target
-            mouseCurrent = GameManager.GetMousePosition();
-            GridNode potentialTarget = GameManager.gridManager.GetNodeAtPosition(mouseCurrent);
-            if (potentialTarget is BaseEnemy potentialEnemy)
-            {
-                foreach (GridNode node in selectedUnits)
-                {
-                    if (node is BaseUnit unit)
-                    {
-                        unit.SetUnitTarget(potentialEnemy);
-                    }
-                }
-            }
-            else // Moving towards a location
-            {
-                SetUnitTargeLocation(false);
-            }
+            SetUnitTargetAction(false);
         }
 
         if (Input.IsActionJustPressed("key_attackMove"))
         {
-            SetUnitTargeLocation(true);
+            SetUnitTargetAction(true);
         }
 
         Update();
     }
 
-    private void SetUnitTargeLocation(bool attacking)
+    private void SetUnitTargetAction(bool aggressive)
+    {
+        // Check if it's a move, or a target
+        mouseCurrent = GameManager.GetMousePosition();
+        GridNode potentialTarget = GameManager.gridManager.GetNodeAtPosition(mouseCurrent);
+        if (potentialTarget is BaseEnemy potentialEnemy)
+        {
+            foreach (GridNode node in selectedUnits)
+            {
+                if (node is BaseUnit unit)
+                {
+                    unit.SetUnitTarget(potentialEnemy);
+                }
+            }
+        }
+        else // Moving towards a location
+        {
+            SetUnitTargetLocation(aggressive);
+        }
+    }
+
+    private void SetUnitTargetLocation(bool aggresive)
     {
         // Basic 'don't overlap' code
         if (selectedUnits.Count == 1)
         {
             if (selectedUnits.First() is BaseUnit unit)
             {
-                if (attacking)
+                if (aggresive)
                 {
                     unit.SetAttackMoveTarget(GameManager.GetMousePosition());
                 }
@@ -125,7 +130,7 @@ public partial class InputManager : Node2D
                 {
                     Vector2 targetPosition = GameManager.GetMousePosition()
                         + 16 * new Vector2(Mathf.Cos(index * angle), Mathf.Sin(index * angle));
-                    if (attacking)
+                    if (aggresive)
                     {
                         unit.SetAttackMoveTarget(targetPosition);
                     }
