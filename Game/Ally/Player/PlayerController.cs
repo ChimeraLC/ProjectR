@@ -31,7 +31,7 @@ public class PlayerController : Node2D
 
         if (Input.IsActionJustPressed("key_slot1"))
         {
-            GameManager.gridManager.ForeachDelegateInRadius(Position,
+            GridManager.Instance.ForeachDelegateInRadius(Position,
                 100, HealSpell, GridNodeType.Ally);
         }
     }

@@ -15,7 +15,8 @@ public class BaseEnemy : GridNode
     public float AttackDistance {get; private set;} = 30;
     public float TargetRadius { get; private set;} = 400;
     private float attackTimer = 0;
-    private float attackSpacing = 1;
+    private float attackSpacing = 2;
+    private float deathTimer = 1;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -32,26 +33,37 @@ public class BaseEnemy : GridNode
 
     public override void Tick(float delta)
     {
-        if (targetUnit != null && targetUnit.inPlay)
+        if (Alive)
         {
-            (Vector2 newPosition, bool reached) = Utils.MoveTowards(GlobalPosition,
-                targetUnit.GetPosition(), delta * MoveSpeed, AttackDistance);
-            SetPosition(newPosition);
-            if (reached)
+            if (targetUnit != null && targetUnit.Alive)
             {
-                attackTimer -= delta;
-                if (attackTimer <= delta)
+                (Vector2 newPosition, bool reached) = Utils.MoveTowards(GlobalPosition,
+                    targetUnit.GetPosition(), delta * MoveSpeed, AttackDistance);
+                SetPosition(newPosition);
+                if (reached)
                 {
-                    targetUnit.DealDamage(10); // TODO: Get "Damage amount" or whatever
-                
-                    attackTimer += attackSpacing;
+                    attackTimer -= delta;
+                    if (attackTimer <= delta)
+                    {
+                        targetUnit.DealDamage(this, 10); // TODO: Get "Damage amount" or whatever
+                    
+                        attackTimer += attackSpacing;
+                    }
                 }
+            }
+            else
+            {
+                // TODO: Some kind of wandering behavior
+                TickRetarget(delta);
             }
         }
         else
         {
-            // TODO: Some kind of wandering behavior
-            TickRetarget(delta);
+            // Do death behavior
+            deathTimer -= delta;
+            Modulate = new Color(1, 1, 1, deathTimer);
+            if (deathTimer <= 0)
+                InPlay = false;
         }
 
 #if DEBUG
@@ -65,7 +77,7 @@ public class BaseEnemy : GridNode
         retargetTimer -= delta;
         if (retargetTimer <= 0)
         {
-            GridNode potentialUnit = GameManager.gridManager.GetClosestNode(GlobalPosition, TargetRadius, GridNodeType.Ally);
+            GridNode potentialUnit = GridManager.Instance.GetClosestNode(GlobalPosition, TargetRadius, GridNodeType.Ally);
             if (potentialUnit is BaseUnit potentialAlly) // TODO: Check if it's an 'enemy type' once that exists
             {
                 targetUnit = potentialAlly;

@@ -16,13 +16,14 @@ public abstract class GridNode : Node2D, HitboxOwner
 {
     public int gridIndex = 0;
     public GridNodeType nodeType;
-    public bool inPlay = true;
+    public bool Alive = true;
+    public bool InPlay = true;
     public float Health {get; protected set;} = 100;
     public int targetBuffer = 0; // For large units, extra buffer for finding 'closest enemy'
     public virtual void Initialize(Vector2 position, GridNodeType nodeType)
     {
         this.nodeType = nodeType;
-        GameManager.gridManager.AddGridNode(this, position);
+        GridManager.Instance.AddGridNode(this, position);
     }
 
     public virtual void Tick(float delta) {}
@@ -31,21 +32,22 @@ public abstract class GridNode : Node2D, HitboxOwner
     public new virtual void SetPosition(Vector2 newPosition)
     {
         GlobalPosition = newPosition;
-        GameManager.gridManager.MoveGridNode(this, newPosition);
+        GridManager.Instance.MoveGridNode(this, newPosition);
     }
 
     public new virtual Vector2 GetPosition() { return GlobalPosition; }
 
-    public virtual void Destroy(Vector2 position)
+    public virtual void Destroy()
     {
-        if (inPlay)
+        if (InPlay)
         {
             Logger.Log($"Destroying unit {Name} that is still inPlay", LogLevel.warn);
         }
-        GameManager.gridManager.RemoveGridNode(this);
+        GridManager.Instance.RemoveGridNode(this);
+        QueueFree();
     }
 
-    public virtual bool DealDamage(float damageAmount)
+    public virtual bool DealDamage(GridNode source, float damageAmount)
     {
         if (Health <= 0)
             return false; // Don't doublecount damage
@@ -53,7 +55,7 @@ public abstract class GridNode : Node2D, HitboxOwner
         Health -= damageAmount;
         if (Health <= 0)
         {
-            inPlay = false;
+            Alive = false;
             return false;
         }
         return true;

@@ -5,7 +5,7 @@
 [ext_resource path="res://Game/Ally/Player/PlayerController.tscn" type="PackedScene" id=3]
 [ext_resource path="res://Game/Enemy/Units/BaseEnemy.tscn" type="PackedScene" id=4]
 
-[node name="Node2D" type="Node2D"]
+[node name="World" type="Node2D"]
 
 [node name="InputManager" parent="." instance=ExtResource( 1 )]
 
@@ -13,16 +13,10 @@
 position = Vector2( 595, 488 )
 
 [node name="BaseUnit" parent="." instance=ExtResource( 2 )]
-position = Vector2( 269, 179 )
+position = Vector2( 682, 204 )
 
 [node name="BaseUnit2" parent="." instance=ExtResource( 2 )]
-position = Vector2( 348, 403 )
-
-[node name="BaseUnit3" parent="." instance=ExtResource( 2 )]
-position = Vector2( 573, 274 )
-
-[node name="BaseUnit4" parent="." instance=ExtResource( 2 )]
-position = Vector2( 809, 342 )
+position = Vector2( 761, 428 )
 
 [node name="BaseEnemy" parent="." instance=ExtResource( 4 )]
 position = Vector2( 915, 527 )

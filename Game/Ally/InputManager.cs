@@ -30,12 +30,15 @@ public partial class InputManager : Node2D
 
     public void Tick(float delta)
     {
+        // Removing dead things from selected units
+        selectedUnits.RemoveWhere(unit => !unit.Alive);
+
         if (Input.IsActionJustPressed("key_select"))
         {
             mouseDown = GameManager.GetMousePosition();
             dragging = false;
 
-            GameManager.gridManager.GetClosestNode(mouseDown, 200);
+            GridManager.Instance.GetClosestNode(mouseDown, 200);
         }
 
         if (Input.IsActionPressed("key_select"))
@@ -56,11 +59,11 @@ public partial class InputManager : Node2D
             // Getting all units within rectangle, or just at the given point
             if (dragging)
             {
-                GameManager.gridManager.PushContainedNodes(mouseDown, mouseCurrent, selectedUnits);
+                GridManager.Instance.PushContainedNodes(mouseDown, mouseCurrent, selectedUnits, GridNodeType.Ally);
             }
             else
             {
-                GridNode potentialSelection = GameManager.gridManager.GetNodeAtPosition(mouseCurrent);
+                GridNode potentialSelection = GridManager.Instance.GetNodeAtPosition(mouseCurrent);
                 if (potentialSelection != null)
                     selectedUnits.Add(potentialSelection);
             }
@@ -85,7 +88,7 @@ public partial class InputManager : Node2D
     {
         // Check if it's a move, or a target
         mouseCurrent = GameManager.GetMousePosition();
-        GridNode potentialTarget = GameManager.gridManager.GetNodeAtPosition(mouseCurrent);
+        GridNode potentialTarget = GridManager.Instance.GetNodeAtPosition(mouseCurrent);
         if (potentialTarget is BaseEnemy potentialEnemy)
         {
             foreach (GridNode node in selectedUnits)

@@ -1,2 +1,4 @@
 Move InputManager draw into separate class; it shouldn't be a Node2D
-Prevent unit clumping, like when moving to the same spot
+Have units move between states more cleanly
+Have both a min and max range
+Setting seek target doesn't immediately find enemy

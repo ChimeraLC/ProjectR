@@ -3,12 +3,31 @@ using Godot;
 public static partial class Utils
 {
     public static (Vector2, bool) MoveTowards(Vector2 start, Vector2 goal, float distance, 
-        float padding = 0)
+        float padding = 0, bool isWithin = false)
     {
         float curDistance = (goal-start).Length();
 
         // Easy out
         if (padding <= 0 && curDistance <= distance)
+            return (goal, true);
+        if (isWithin && curDistance <= padding)
+            return (start, true);
+
+        (float goalDistance, bool reached) = MoveTowards(curDistance, padding, distance);
+
+        Vector2 direction = curDistance == 0 ? Vector2.Left : (start - goal) / curDistance;
+        
+        return (goal + direction * goalDistance, reached);
+    }
+
+    
+    public static (Vector2, bool) MoveTowardsWithin(Vector2 start, Vector2 goal, float distance, 
+        float padding = 0)
+    {
+        float curDistance = (goal-start).Length();
+
+        // Easy out
+        if (curDistance <= distance)
             return (goal, true);
 
         (float goalDistance, bool reached) = MoveTowards(curDistance, padding, distance);

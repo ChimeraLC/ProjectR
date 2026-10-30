@@ -9,6 +9,7 @@ public delegate void NodeDelegate(GridNode node);
 /// </summary>
 public partial class GridManager
 {
+    public static GridManager Instance {get; private set;}
     private readonly int gridSize = 80;
     private readonly int gridWidth;
     private readonly int gridHeight;
@@ -16,9 +17,11 @@ public partial class GridManager
     private HashSet<GridNode>[] gridNodes;
 
     // Full hashsets of all the units for tick purposes
-    private HashSet<GridNode> AllyUnits;
-    private HashSet<GridNode> EnemyUnits;
-    private HashSet<GridNode> GenericUnits;
+    private HashSet<GridNode> AllyNodes;
+    private HashSet<GridNode> EnemyNodes;
+    private HashSet<GridNode> GenericNodes;
+    private List<HashSet<GridNode>> NodeSets;
+    private HashSet<GridNode> GCNodes; // Used to delete nodes no longer in play
 
     public GridManager(int inGridSize = 80)
     {
@@ -37,22 +40,40 @@ public partial class GridManager
             gridNodes[i] = new HashSet<GridNode>();
         }
 
-        AllyUnits = new HashSet<GridNode>();
-        EnemyUnits = new HashSet<GridNode>();
-        GenericUnits = new HashSet<GridNode>();
+        AllyNodes = new HashSet<GridNode>();
+        EnemyNodes = new HashSet<GridNode>();
+        GenericNodes = new HashSet<GridNode>();
+        GCNodes = new HashSet<GridNode>();
 
+        NodeSets = new List<HashSet<GridNode>>(){AllyNodes, EnemyNodes, GenericNodes};
+
+        Instance = this;
     }
     
     public void Tick(float delta)
     {
-        foreach (GridNode allyUnit in AllyUnits)
-            allyUnit.Tick(delta);
+        GCNodes.Clear();
 
-        foreach (GridNode enemyUnit in EnemyUnits)
-            enemyUnit.Tick(delta);
+        foreach (HashSet<GridNode> nodeSet in NodeSets)
+        {
+            foreach (GridNode node in nodeSet)
+            {
+                if (node.InPlay)
+                {
+                    node.Tick(delta);
+                }
+                else
+                {
+                    GCNodes.Add(node);
+                }
+            }
+        }
 
-        foreach (GridNode genericUnit in GenericUnits)
-            genericUnit.Tick(delta);
+        // Garbage collection
+        foreach (GridNode outNode in GCNodes)
+        {
+            outNode.Destroy();
+        }
     }
 
 // MARK: Adding and removing nodes
@@ -122,7 +143,7 @@ public partial class GridManager
                 int queryIndex = GetGridIndex(position + new Vector2(i, j) * gridSize);
                 foreach (GridNode node in gridNodes[queryIndex])
                 {
-                    if (node.inPlay)
+                    if (node.Alive)
                     {
                         if (queryType == GridNodeType.Invalid || queryType == node.nodeType)
                         {
@@ -177,7 +198,7 @@ public partial class GridManager
                 int queryIndex = GetGridIndex(spiralPosition);
                 foreach (GridNode node in gridNodes[queryIndex])
                 {
-                    if (node.inPlay)
+                    if (node.Alive)
                     {
                         if (queryType == GridNodeType.Invalid || queryType == node.nodeType)
                         {
@@ -213,7 +234,7 @@ public partial class GridManager
                 int queryIndex = GetGridIndex(new Vector2(xPos, yPos));
                 foreach (GridNode node in gridNodes[queryIndex])
                 {
-                    if (node.inPlay)
+                    if (node.Alive)
                     {
                         if (queryType == GridNodeType.Invalid || queryType == node.nodeType)
                         {
@@ -232,7 +253,7 @@ public partial class GridManager
         return runNodes;
     }
 
-    public void PushContainedNodes(Vector2 point1, Vector2 point2, HashSet<GridNode> outArray)
+    public void PushContainedNodes(Vector2 point1, Vector2 point2, HashSet<GridNode> outArray, GridNodeType queryType = GridNodeType.Invalid)
     {
         // Create hitbox
         RectHitbox selectBox = new RectHitbox(null, (point1 + point2) / 2, (point2 - point1).Abs() / 2);
@@ -245,12 +266,17 @@ public partial class GridManager
                 int queryIndex = GetGridIndex(new Vector2(i, j));
                 foreach (GridNode gridNode in gridNodes[queryIndex])
                 {
-                    // Center is contained within rectangle
-                    // TODO: Instead, have some rectangle overlap with hitbox code
-                    gridNode.UpdateHitbox();
-                    if (gridNode.GetHitbox().OverlapsHitbox(selectBox).Item1)
+                    if (gridNode.Alive)
                     {
-                        outArray.Add(gridNode);
+                        if (queryType == GridNodeType.Invalid || queryType == gridNode.nodeType)
+                        {
+                            // Center is contained within rectangle
+                            gridNode.UpdateHitbox();
+                            if (gridNode.GetHitbox().OverlapsHitbox(selectBox).Item1)
+                            {
+                                outArray.Add(gridNode);
+                            }
+                        }
                     }
                 }
             }
@@ -271,23 +297,23 @@ public partial class GridManager
     private HashSet<GridNode> GetReleventSet(GridNodeType nodeType)
     {
         if (nodeType == GridNodeType.Ally)
-            return AllyUnits;
+            return AllyNodes;
         if (nodeType == GridNodeType.Enemy)
-            return EnemyUnits;
-        return GenericUnits;
+            return EnemyNodes;
+        return GenericNodes;
     }
 
 #if DEBUG
 
     public void DrawUnitHitboxes(Node2D drawNode)
     {
-        foreach (GridNode allyUnit in AllyUnits)
+        foreach (GridNode allyUnit in AllyNodes)
             allyUnit.DrawHitbox(drawNode);    
 
-        foreach (GridNode enemyUnit in EnemyUnits)
+        foreach (GridNode enemyUnit in EnemyNodes)
             enemyUnit.DrawHitbox(drawNode);
 
-        foreach (GridNode genericUnit in GenericUnits)
+        foreach (GridNode genericUnit in GenericNodes)
             genericUnit.DrawHitbox(drawNode);
     }
 

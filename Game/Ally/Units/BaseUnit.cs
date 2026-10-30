@@ -12,8 +12,12 @@ public enum UnitState
 
 public delegate void UnitAttackDelegate(float delta);
 
-public class BaseUnit : GridNode
+public partial class BaseUnit : GridNode
 {   
+    // Parts of sprite
+    private Node2D weaponSprite;
+
+    // Generic stuff
     private RectHitbox hitbox;
     public UnitState State {get; private set; }
     private bool seekingState; // If it still has a seek target
@@ -24,59 +28,61 @@ public class BaseUnit : GridNode
     private const float retargetTickLength = 0.5f; // How often it'll look for a new target
     private float retargetTimer = 0.5f;
 
-    // Character statics
-    private const float maxHealth = 100;
-
-
-    public float MoveSpeed {get; private set;} = 40;
-    public float AttackDistance {get; private set;} = 30;
-    public float TargetRadius { get; private set;} = 250;
     public UnitAttackDelegate AttackTick {get; private set;} = null;
     public UnitAttackDelegate PassiveTick {get; private set;} = null;
 
     // Attack timer
     private float attackTimer = 0;
-    private float attackSpacing = 1;
 
     public override void _Ready()
     {
         Initialize(GlobalPosition, GridNodeType.Ally);
     
+        // Get sprites
+        weaponSprite = GetNode<Node2D>("WeaponSprite");
+
         hitbox = new RectHitbox(this, GlobalPosition, new Vector2(16, 16));
     
         State = UnitState.Idle;
 
-        AttackTick = BasicAttackDelegate;
+        AttackTick = BasicRangedAttackDelegate;
         PassiveTick = BasicPassiveDelegate;
 
-        Health = maxHealth; // TODO: Move this into a "GetMaxHealth()" function
+        Health = GetMaxHealth();
     }
 
     public override void Tick(float delta)
     {
-        switch (State)
+        if (Alive)
         {
-            case UnitState.Idle:
-            break;
-            case UnitState.Moving:
-                TickMoving(delta);
-            break;
-            case UnitState.Watching:
-                TickWatching(delta);
-            break;
-            case UnitState.Seeking:
-                TickSeeking(delta);
-            break;
-            case UnitState.Chasing: 
-                TickChasing(delta);
-            break;
-            case UnitState.Attacking:
-                TickAttacking(delta);
-            break;
-        }
+            switch (State)
+            {
+                case UnitState.Idle:
+                break;
+                case UnitState.Moving:
+                    TickMoving(delta);
+                break;
+                case UnitState.Watching:
+                    TickWatching(delta);
+                break;
+                case UnitState.Seeking:
+                    TickSeeking(delta);
+                break;
+                case UnitState.Chasing: 
+                    TickChasing(delta);
+                break;
+                case UnitState.Attacking:
+                    TickAttacking(delta);
+                break;
+            }
 
-        if (PassiveTick != null)
-            PassiveTick(delta);
+            if (PassiveTick != null)
+                PassiveTick(delta);
+        }
+        else
+        {
+            // When dead, don't leave play, since can be 'revived'    
+        }
 
 #if DEBUG
         Update();
@@ -86,7 +92,7 @@ public class BaseUnit : GridNode
     private void TickMoving(float delta)
     {
         (Vector2 newPosition, bool reached) = Utils.MoveTowards(GlobalPosition,
-            targetPosition, delta * MoveSpeed);
+            targetPosition, delta * GetMoveSpeed());
         SetPosition(newPosition);
         if (reached)
             State = UnitState.Idle;
@@ -102,7 +108,7 @@ public class BaseUnit : GridNode
     private void TickSeeking(float delta)
     {
         (Vector2 newPosition, bool reached) = Utils.MoveTowards(GlobalPosition,
-            targetPosition, delta * MoveSpeed);
+            targetPosition, delta * GetMoveSpeed());
         SetPosition(newPosition);
         TickRetarget(delta);
         if (reached)
@@ -118,10 +124,10 @@ public class BaseUnit : GridNode
         // Retargeting
         // TickRetarget(delta); // TODO: Shouldn't lose target
 
-        if (targetUnit != null && targetUnit.inPlay)
+        if (targetUnit != null && targetUnit.Alive)
         {
             (Vector2 newPosition, bool reached) = Utils.MoveTowards(GlobalPosition,
-                targetUnit.GetPosition(), delta * MoveSpeed, AttackDistance);
+                targetUnit.GetPosition(), delta * GetMoveSpeed(), GetAttackDistance(), true);
             SetPosition(newPosition);
             if (reached)
             {
@@ -143,7 +149,7 @@ public class BaseUnit : GridNode
         retargetTimer -= delta;
         if (retargetTimer <= 0)
         {
-            GridNode potentialUnit = GameManager.gridManager.GetClosestNode(GlobalPosition, TargetRadius, GridNodeType.Enemy);
+            GridNode potentialUnit = GridManager.Instance.GetClosestNode(GlobalPosition, GetTargetRadius(), GridNodeType.Enemy);
             if (potentialUnit is BaseEnemy potentialEnemy) // TODO: Check if it's an 'enemy type' once that exists
             {
                 targetUnit = potentialEnemy;
@@ -160,7 +166,7 @@ public class BaseUnit : GridNode
     private void TickAttacking(float delta)
     {
             
-        if (targetUnit != null && targetUnit.inPlay)
+        if (targetUnit != null && targetUnit.Alive)
         {
             // Run attack tick
             if (AttackTick != null)
@@ -212,32 +218,13 @@ public class BaseUnit : GridNode
 
     public bool Heal(float healAmount)
     {
-        Health = Mathf.Min(Health + healAmount, maxHealth);
-        return Health >= maxHealth;
+        Health = Mathf.Min(Health + healAmount, GetMaxHealth());
+        return Health >= GetMaxHealth();
     }
 
     public override Hitbox GetHitbox()
     {   
         return hitbox;
-    }
-
-    private void BasicAttackDelegate(float delta)
-    {
-        attackTimer -= delta;
-        if (attackTimer <= delta)
-        {
-            targetUnit.DealDamage(10); // TODO: Get "Damage amount" or whatever
-        
-            attackTimer += attackSpacing;
-
-            // Return to chasing in case enemy left range during attack
-            State = UnitState.Chasing;
-        }
-    }
-
-    private void BasicPassiveDelegate(float delta)
-    {
-        attackTimer = Mathf.Max(0, attackTimer - delta);
     }
 
 #if DEBUG
@@ -261,7 +248,7 @@ public class BaseUnit : GridNode
             }     
             
             // Draw health
-            float healthPercentage = Health / maxHealth;
+            float healthPercentage = Health / GetMaxHealth();
             DrawLine(new Vector2(-16 * healthPercentage, -40), new Vector2(16 * healthPercentage, -40), Colors.Red, 4);
         }
     }

@@ -20,4 +20,3 @@ mono_crash.*.json
 
 # Content assets
 .SourceAssets/
-*.tscn

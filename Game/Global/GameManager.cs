@@ -4,20 +4,26 @@ public partial class GameManager : Node2D
 {   
     public static GameManager Instance { get; private set; }
     public static GridManager gridManager { get; private set; }
+    public static LatentManager latentManager { get; private set; }
+    public static ProjectileManager projectileManager { get; private set; }
 
     public static InputManager inputManager { get; private set; }
     public static PlayerController playerController { get; private set; }
 
     // Only calculate mouse position once per frame
     private Vector2 mousePosition;
+    public static Node2D WorldRoot;
     public static bool IsPaused { get; private set; }
 
     public static Font DefaultFont;
+    public static long currentFrame;
 
     public override void _Ready()
     {
         Instance = this;
         gridManager = new GridManager();
+        latentManager = new LatentManager();
+        projectileManager = new ProjectileManager();
 
         IsPaused = false;
 
@@ -26,7 +32,9 @@ public partial class GameManager : Node2D
         // Draw above everything else
         ZIndex = 1000;
 
+        WorldRoot = GetTree().Root.GetNode<Node2D>("World");
         DefaultFont = new Control().GetFont("font");
+        currentFrame = 0;
     }
 
     public static float GetTimeDilation()
@@ -47,6 +55,8 @@ public partial class GameManager : Node2D
 
     public void Tick(float delta)
     {
+        currentFrame++;
+
         // Cached information
         mousePosition = GetViewport().GetMousePosition();
 
@@ -62,6 +72,8 @@ public partial class GameManager : Node2D
             playerController.Tick(delta);
 
         gridManager.Tick(delta);
+        latentManager.Tick(delta);
+        projectileManager.Tick(delta);
     }
 
     /// <summary> Force ends the game from anywhere </summary>
