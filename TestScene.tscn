@@ -3,7 +3,7 @@
 [ext_resource path="res://Game/Ally/InputManager.tscn" type="PackedScene" id=1]
 [ext_resource path="res://Game/Ally/Units/BaseUnit.tscn" type="PackedScene" id=2]
 [ext_resource path="res://Game/Ally/Player/PlayerController.tscn" type="PackedScene" id=3]
-[ext_resource path="res://Game/Enemy/Units/BaseEnemy.tscn" type="PackedScene" id=4]
+[ext_resource path="res://Game/Enemy/Units/BaseEnemyDummy.tscn" type="PackedScene" id=4]
 
 [node name="World" type="Node2D"]
 
@@ -14,9 +14,10 @@ position = Vector2( 595, 488 )
 
 [node name="BaseUnit" parent="." instance=ExtResource( 2 )]
 position = Vector2( 682, 204 )
+currentWeaponType = 1
 
 [node name="BaseUnit2" parent="." instance=ExtResource( 2 )]
 position = Vector2( 761, 428 )
 
 [node name="BaseEnemy" parent="." instance=ExtResource( 4 )]
-position = Vector2( 915, 527 )
+position = Vector2( 842, 479 )

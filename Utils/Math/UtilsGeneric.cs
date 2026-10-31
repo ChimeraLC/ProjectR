@@ -55,6 +55,28 @@ public static partial class Utils
         }
     }
 
+    public static (float, bool) MoveTowardsNearestMultiple(float start, float value, float distance)
+    {
+        if (value <= 0)
+            return (start, true);
+
+        float overshot = start % value;
+        
+        // Closer to lower multiple
+        if (overshot < value / 2)
+        {
+            if (overshot < distance)
+                return (start - overshot, true);
+            return (start - distance, false);
+        }
+        else
+        {
+            if (value - overshot < distance)
+                return (start - overshot + value, true);
+            return (start + distance, false);
+        }
+    }
+
     /// <summary> Returns smallest positive solution if it exists; returns -1 in all other cases </summary>
     public static float PositiveQuadraticIfPossible(float a, float b, float c)
     {

@@ -9,13 +9,11 @@ public partial class BaseUnit : GridNode
         attackTimer -= delta;
         if (attackTimer <= delta)
         {
-            LatentManager.RunLatentAction(0.7f, WeaponSwingDelegate);
+            LatentManager.RunLatentAction(0.7f, WeaponSwingDelegate, CheckAttackDistance);
             LatentManager.RunBasicAction(0.4f, ShootArrow);
         
+            // Reset attack timer
             attackTimer += GetAttackSpacing();
-
-            // Return to chasing in case enemy left range during attack
-            State = UnitState.Chasing;
         }
     }
 
@@ -28,7 +26,7 @@ public partial class BaseUnit : GridNode
             {
                 projectileStart = GetPosition(),
                 projectileEnd = targetUnit.GetPosition(),
-                damage = 10,
+                damage = GetDamageDealt(),
                 target = targetUnit,
                 duration = 0.2f,
             };

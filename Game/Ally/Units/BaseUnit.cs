@@ -15,15 +15,18 @@ public delegate void UnitAttackDelegate(float delta);
 public partial class BaseUnit : GridNode
 {   
     // Parts of sprite
+    private Sprite bodySprite;
     private Node2D weaponSprite;
 
     // Generic stuff
+    private float movementWobble = 0;
     private RectHitbox hitbox;
     public UnitState State {get; private set; }
     private bool seekingState; // If it still has a seek target
 
     private Vector2 targetPosition;
     private BaseEnemy targetUnit;
+    private int facingOct;
     // Seeking enemies
     private const float retargetTickLength = 0.5f; // How often it'll look for a new target
     private float retargetTimer = 0.5f;
@@ -39,14 +42,14 @@ public partial class BaseUnit : GridNode
         Initialize(GlobalPosition, GridNodeType.Ally);
     
         // Get sprites
-        weaponSprite = GetNode<Node2D>("WeaponSprite");
+        bodySprite = GetNode<Sprite>("BodySprite");
+        weaponSprite = bodySprite.GetNode<Node2D>("WeaponSprite");
 
-        hitbox = new RectHitbox(this, GlobalPosition, new Vector2(16, 16));
+        hitbox = new RectHitbox(this, GlobalPosition, new Vector2(16, 20));
     
         State = UnitState.Idle;
 
-        AttackTick = BasicRangedAttackDelegate;
-        PassiveTick = BasicPassiveDelegate;
+        SetCurrentWeapon();
 
         Health = GetMaxHealth();
     }
@@ -78,6 +81,8 @@ public partial class BaseUnit : GridNode
 
             if (PassiveTick != null)
                 PassiveTick(delta);
+
+            TickAnimation(delta);
         }
         else
         {
@@ -87,6 +92,36 @@ public partial class BaseUnit : GridNode
 #if DEBUG
         Update();
 #endif // #if DEBUG
+    }
+
+    const int wobbleRate = 8;
+    private void TickAnimation(float delta)
+    {
+        // Basic 'wobble' when moving
+        if (IsMoving())
+        {
+            movementWobble = (movementWobble + delta * wobbleRate) % (Mathf.Pi * 2);
+        }
+        else
+        {
+            movementWobble = Utils.MoveTowardsNearestMultiple(movementWobble, Mathf.Pi, delta * wobbleRate).Item1;
+        }
+
+        bodySprite.Rotation = Mathf.Sin(movementWobble) / 3;
+        bodySprite.Position = Vector2.Up * Mathf.Abs(Mathf.Sin(movementWobble)) * 10;
+
+        // Look direction
+        Vector2 lookDirection = (State == UnitState.Chasing || State == UnitState.Attacking) ? 
+            (targetUnit.GetPosition() - GetPosition()) : // Currently focused on a target
+            targetPosition - GetPosition(); // Focused on a position
+        
+        facingOct = Utils.GetOctant(lookDirection);
+        bodySprite.Frame = facingOct;
+    }
+
+    private bool IsMoving()
+    {
+        return State == UnitState.Moving || State == UnitState.Chasing || State == UnitState.Seeking;
     }
 
     private void TickMoving(float delta)
@@ -122,8 +157,6 @@ public partial class BaseUnit : GridNode
     private void TickChasing(float delta)
     {
         // Retargeting
-        // TickRetarget(delta); // TODO: Shouldn't lose target
-
         if (targetUnit != null && targetUnit.Alive)
         {
             (Vector2 newPosition, bool reached) = Utils.MoveTowards(GlobalPosition,
@@ -149,17 +182,22 @@ public partial class BaseUnit : GridNode
         retargetTimer -= delta;
         if (retargetTimer <= 0)
         {
-            GridNode potentialUnit = GridManager.Instance.GetClosestNode(GlobalPosition, GetTargetRadius(), GridNodeType.Enemy);
-            if (potentialUnit is BaseEnemy potentialEnemy) // TODO: Check if it's an 'enemy type' once that exists
-            {
-                targetUnit = potentialEnemy;
-                retargetTimer += retargetTickLength * 2;
-                State = UnitState.Chasing;
-            }
-            else
-            {
-                retargetTimer += retargetTickLength;
-            }
+            Retarget();
+        }
+    }
+
+    private void Retarget()
+    {
+        GridNode potentialUnit = GridManager.Instance.GetClosestNode(GlobalPosition, GetTargetRadius(), GridNodeType.Enemy);
+        if (potentialUnit is BaseEnemy potentialEnemy) // TODO: Check if it's an 'enemy type' once that exists
+        {
+            targetUnit = potentialEnemy;
+            retargetTimer += retargetTickLength * 2;
+            State = UnitState.Chasing;
+        }
+        else
+        {
+            retargetTimer += retargetTickLength;
         }
     }
 
@@ -182,7 +220,7 @@ public partial class BaseUnit : GridNode
 
     public override void UpdateHitbox()
     {
-        hitbox.center = GlobalPosition + new Vector2(0, -16);
+        hitbox.center = GlobalPosition + new Vector2(0, -20);
     }
 
     public void SetMoveTarget(Vector2 location)
@@ -198,7 +236,7 @@ public partial class BaseUnit : GridNode
         targetPosition = location;
 
         // Immediately look for target
-        retargetTimer = 0;
+        Retarget();
     }
 
     // Sets the unit's target. Should always be non-null
@@ -215,6 +253,14 @@ public partial class BaseUnit : GridNode
             Logger.Log("SetUnitTarget() recieved a null target", LogLevel.error);
         }
     }
+
+    public override bool TakeDamage(GridNode source, float damageAmount)
+    {
+        // Do defense damage reductions
+        damageAmount = Mathf.Max(0, damageAmount - GetDefense());
+        return base.TakeDamage(source, damageAmount);
+    }
+
 
     public bool Heal(float healAmount)
     {
@@ -249,7 +295,7 @@ public partial class BaseUnit : GridNode
             
             // Draw health
             float healthPercentage = Health / GetMaxHealth();
-            DrawLine(new Vector2(-16 * healthPercentage, -40), new Vector2(16 * healthPercentage, -40), Colors.Red, 4);
+            DrawLine(new Vector2(-16 * healthPercentage, -60), new Vector2(16 * healthPercentage, -60), Colors.Red, 4);
         }
     }
 #endif // #if DEBUG

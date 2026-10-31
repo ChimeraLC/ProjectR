@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 
 // Melee behavior for the ally unit
@@ -15,13 +16,11 @@ public partial class BaseUnit : GridNode
         attackTimer -= delta;
         if (attackTimer <= delta)
         {
-            LatentManager.RunLatentAction(0.7f, WeaponSwingDelegate);
+            LatentManager.RunLatentAction(0.7f, WeaponSwingDelegate, CheckAttackDistance);
             LatentManager.RunBasicAction(0.4f, DamageEnemyMelee);
         
+            // Reset attack timer
             attackTimer += GetAttackSpacing();
-
-            // Return to chasing in case enemy left range during attack
-            State = UnitState.Chasing;
         }
     }
 
@@ -32,12 +31,20 @@ public partial class BaseUnit : GridNode
 
     private void WeaponSwingDelegate(float delta, float currentTick, float proportion)
     {
-        weaponSprite.Rotation = Keyframes.GetValue(meleeSwingFrames, currentTick);
+        weaponSprite.Rotation = Keyframes.GetValue(meleeSwingFrames, currentTick) *
+        (Math.Abs(facingOct - 4) <= 1 ? -1 : 1);
     }
 
     private void DamageEnemyMelee()
     {
         if (targetUnit != null)
-            targetUnit.DealDamage(this, 10);
+            targetUnit.TakeDamage(this, GetDamageDealt());
+    }
+
+    private void CheckAttackDistance()
+    {
+        // If enemy has left range
+        if (State == UnitState.Attacking && (targetUnit.GetPosition() - GetPosition()).Length() < GetAttackDistance() + 20) // TODO: Padding should be determined elsewhere?
+           State = UnitState.Chasing;
     }
 }

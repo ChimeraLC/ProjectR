@@ -69,16 +69,40 @@ public class LatentManager
     }
 
     // Runs a function every tick for a duration
-    public static void RunLatentAction(float duration, LatentDelegate del)
+    public static void RunLatentAction(float duration, LatentDelegate del, BasicDelegate endDel = null)
     {
         if (Instance != null)
         {
-            Instance.latentActions.Add(new LatentAction(duration, del, null));
+            Instance.latentActions.Add(new LatentAction(duration, del, endDel));
         }
         else
         {
             Logger.Log("Attempted to add latent action before latent manager was initialized",
                 LogLevel.error);
+        }
+    }
+
+    // Ends all latent actions belonging to a specific object
+    public static void KillLatentActions(object owner)
+    {   
+        if (Instance != null)
+            Instance.KillLatentActionsInternal(owner);
+    }
+
+    private void KillLatentActionsInternal(object owner)
+    {
+        finishedActions.Clear();
+    
+        foreach (LatentAction action in latentActions)
+        {
+            if (action.basicDel != null && action.basicDel.Target == owner ||
+                action.latentDel != null && action.latentDel.Target == owner)
+                finishedActions.Add(action);
+        }
+
+        foreach (LatentAction finishedAction in finishedActions)
+        {
+            latentActions.Remove(finishedAction);
         }
     }
 

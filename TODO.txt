@@ -1,4 +1,4 @@
 Move InputManager draw into separate class; it shouldn't be a Node2D
 Have units move between states more cleanly
-Have both a min and max range
-Setting seek target doesn't immediately find enemy
+Have both a min and max attack range
+Select units using number keys

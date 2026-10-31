@@ -22,6 +22,7 @@ public partial class GridManager
     private HashSet<GridNode> GenericNodes;
     private List<HashSet<GridNode>> NodeSets;
     private HashSet<GridNode> GCNodes; // Used to delete nodes no longer in play
+    private HashSet<int> DebugNodes = new HashSet<int>();
 
     public GridManager(int inGridSize = 80)
     {
@@ -165,6 +166,7 @@ public partial class GridManager
 
     public GridNode GetClosestNode(Vector2 position, float radius, GridNodeType queryType = GridNodeType.Invalid)
     {
+        DebugNodes.Clear();
         float maxRadius = radius * radius;
         GridNode foundNode = null;
         bool earlyExit = false;
@@ -181,7 +183,7 @@ public partial class GridManager
 
             // Outer ring
             int ringSize = 8 * spiralRadius;
-            for (int i = 0; i < ringSize; i++)
+            for (int i = 0; i == 0 || i < ringSize; i++)
             {
                 int cornerIndex = i % 4;
                 int sideIndex = i / 4;

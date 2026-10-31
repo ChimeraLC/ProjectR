@@ -3,25 +3,24 @@ using System;
 
 public class BaseEnemy : GridNode
 { 
-    private const float maxHealth = 100;
-    private RectHitbox hitbox;
-    public UnitState State {get; private set;}
+    protected const float maxHealth = 100;
+    protected RectHitbox hitbox;
+    public UnitState State {get; protected set;}
 
-    private BaseUnit targetUnit;
-    private const float retargetTickLength = 0.5f;
-    private float retargetTimer = 0.5f;
+    protected BaseUnit targetUnit;
+    protected const float retargetTickLength = 0.5f;
+    protected float retargetTimer = 0.5f;
     
-    public float MoveSpeed {get; private set;} = 40;
-    public float AttackDistance {get; private set;} = 30;
-    public float TargetRadius { get; private set;} = 400;
-    private float attackTimer = 0;
-    private float attackSpacing = 2;
-    private float deathTimer = 1;
+    public float MoveSpeed {get; protected set;} = 40;
+    public float AttackDistance {get; protected set;} = 30;
+    public float TargetRadius { get; protected set;} = 400;
+    protected float attackTimer = 0;
+    protected float attackSpacing = 2;
+    protected float deathTimer = 1;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
-        
         Initialize(GlobalPosition, GridNodeType.Enemy);
     
         hitbox = new RectHitbox(this, GlobalPosition, new Vector2(16, 16));
@@ -35,27 +34,7 @@ public class BaseEnemy : GridNode
     {
         if (Alive)
         {
-            if (targetUnit != null && targetUnit.Alive)
-            {
-                (Vector2 newPosition, bool reached) = Utils.MoveTowards(GlobalPosition,
-                    targetUnit.GetPosition(), delta * MoveSpeed, AttackDistance);
-                SetPosition(newPosition);
-                if (reached)
-                {
-                    attackTimer -= delta;
-                    if (attackTimer <= delta)
-                    {
-                        targetUnit.DealDamage(this, 10); // TODO: Get "Damage amount" or whatever
-                    
-                        attackTimer += attackSpacing;
-                    }
-                }
-            }
-            else
-            {
-                // TODO: Some kind of wandering behavior
-                TickRetarget(delta);
-            }
+            TickAttack(delta);
         }
         else
         {
@@ -63,7 +42,7 @@ public class BaseEnemy : GridNode
             deathTimer -= delta;
             Modulate = new Color(1, 1, 1, deathTimer);
             if (deathTimer <= 0)
-                InPlay = false;
+                EndPlay();
         }
 
 #if DEBUG
@@ -71,14 +50,39 @@ public class BaseEnemy : GridNode
 #endif // #if DEBUG
     }
 
-    private void TickRetarget(float delta)
+    protected virtual void TickAttack(float delta)
+    {
+        if (targetUnit != null && targetUnit.Alive)
+        {
+            (Vector2 newPosition, bool reached) = Utils.MoveTowards(GlobalPosition,
+                targetUnit.GetPosition(), delta * MoveSpeed, AttackDistance);
+            SetPosition(newPosition);
+            if (reached)
+            {
+                attackTimer -= delta;
+                if (attackTimer <= delta)
+                {
+                    targetUnit.TakeDamage(this, 10); // TODO: Get "Damage amount" or whatever
+                
+                    attackTimer += attackSpacing;
+                }
+            }
+        }
+        else
+        {
+            // TODO: Some kind of wandering behavior
+            TickRetarget(delta);
+        }
+    }
+
+    protected void TickRetarget(float delta)
     {
         
         retargetTimer -= delta;
         if (retargetTimer <= 0)
         {
             GridNode potentialUnit = GridManager.Instance.GetClosestNode(GlobalPosition, TargetRadius, GridNodeType.Ally);
-            if (potentialUnit is BaseUnit potentialAlly) // TODO: Check if it's an 'enemy type' once that exists
+            if (potentialUnit is BaseUnit potentialAlly)
             {
                 targetUnit = potentialAlly;
                 retargetTimer += retargetTickLength * 2;

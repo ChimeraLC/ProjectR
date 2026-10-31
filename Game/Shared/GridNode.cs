@@ -16,7 +16,9 @@ public abstract class GridNode : Node2D, HitboxOwner
 {
     public int gridIndex = 0;
     public GridNodeType nodeType;
+    // If it's still active and moving around
     public bool Alive = true;
+    // Will be gc'd the moment it's no longer in play
     public bool InPlay = true;
     public float Health {get; protected set;} = 100;
     public int targetBuffer = 0; // For large units, extra buffer for finding 'closest enemy'
@@ -47,7 +49,14 @@ public abstract class GridNode : Node2D, HitboxOwner
         QueueFree();
     }
 
-    public virtual bool DealDamage(GridNode source, float damageAmount)
+    protected virtual void EndPlay()
+    {
+        InPlay = false;
+
+        LatentManager.KillLatentActions(this);
+    }
+
+    public virtual bool TakeDamage(GridNode source, float damageAmount)
     {
         if (Health <= 0)
             return false; // Don't doublecount damage

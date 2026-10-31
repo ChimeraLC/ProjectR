@@ -117,7 +117,7 @@ public class Projectile : Node2D
         {
             // Finish projectile action
             if (curReq.target != null)
-                curReq.target.DealDamage(owner, curReq.damage);
+                curReq.target.TakeDamage(owner, curReq.damage);
     
             Active = false;
         }
