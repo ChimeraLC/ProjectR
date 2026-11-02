@@ -1,7 +1,7 @@
 using Godot;
 using System;
 
-public class BaseEnemy : GridNode
+public abstract class BaseEnemy : GridNode
 { 
     protected const float maxHealth = 100;
     protected RectHitbox hitbox;
@@ -22,7 +22,7 @@ public class BaseEnemy : GridNode
     public override void _Ready()
     {
         Initialize(GlobalPosition, GridNodeType.Enemy);
-    
+
         hitbox = new RectHitbox(this, GlobalPosition, new Vector2(16, 16));
     
         State = UnitState.Idle;
@@ -38,41 +38,25 @@ public class BaseEnemy : GridNode
         }
         else
         {
-            // Do death behavior
-            deathTimer -= delta;
-            Modulate = new Color(1, 1, 1, deathTimer);
-            if (deathTimer <= 0)
-                EndPlay();
+            TickDeath(delta);
         }
+
+        // Place z-index
+        ZIndex = Utils.GetZIndex(GetPosition());
 
 #if DEBUG
         Update();
 #endif // #if DEBUG
     }
 
-    protected virtual void TickAttack(float delta)
+    protected abstract void TickAttack(float delta);
+    protected virtual void TickDeath(float delta)
     {
-        if (targetUnit != null && targetUnit.Alive)
-        {
-            (Vector2 newPosition, bool reached) = Utils.MoveTowards(GlobalPosition,
-                targetUnit.GetPosition(), delta * MoveSpeed, AttackDistance);
-            SetPosition(newPosition);
-            if (reached)
-            {
-                attackTimer -= delta;
-                if (attackTimer <= delta)
-                {
-                    targetUnit.TakeDamage(this, 10); // TODO: Get "Damage amount" or whatever
-                
-                    attackTimer += attackSpacing;
-                }
-            }
-        }
-        else
-        {
-            // TODO: Some kind of wandering behavior
-            TickRetarget(delta);
-        }
+        // Basic death tick
+        deathTimer -= delta;
+        Modulate = new Color(1, 1, 1, deathTimer);
+        if (deathTimer <= 0)
+            EndPlay();
     }
 
     protected void TickRetarget(float delta)
@@ -95,24 +79,8 @@ public class BaseEnemy : GridNode
         }
     }
 
-    public override void UpdateHitbox()
-    {   
-        hitbox.center = GlobalPosition + new Vector2(0, -16);
-    }
-
     public override Hitbox GetHitbox()
     {   
         return hitbox;
     }
-
-#if DEBUG
-    public override void _Draw()
-    {  
-        if (DebugManager.CheckFlag("DebugDrawUnitBehavior"))
-        {
-            float healthPercentage = Health / maxHealth;
-            DrawLine(new Vector2(-16 * healthPercentage, -40), new Vector2(16 * healthPercentage, -40), Colors.Red, 4);
-        }
-    }
-#endif
 }

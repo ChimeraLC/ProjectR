@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://SourceAssets/Slime/SlimeUnitBody.png" type="Texture" id=1]
+[ext_resource path="res://Game/Enemy/Slimes/BasicSlimeEnemy.cs" type="Script" id=2]
+
+[node name="BasicSlime" type="Node2D"]
+scale = Vector2( 0.8, 0.8 )
+script = ExtResource( 2 )
+
+[node name="BodySprite" type="Sprite" parent="."]
+texture = ExtResource( 1 )
+offset = Vector2( 0, -32 )
+hframes = 2
+
+[node name="EyeSprite" type="Polygon2D" parent="."]
+position = Vector2( 0, -16 )
+color = Color( 0.141176, 0.12549, 0.145098, 1 )
+polygon = PoolVector2Array( 6, 6, 6, -6, -6, -6, -6, 6 )

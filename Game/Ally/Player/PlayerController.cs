@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 
 public class PlayerController : Node2D
@@ -14,9 +15,13 @@ public class PlayerController : Node2D
     private float movementWobble = 0;
 
     // Spellcasting
+    private SpellManager spellManager;
+    private List<Spell> equippedSpells;
     private float MaxMana = 100;
     private float Mana = 100;
     private float ManaRegen = 5;
+
+    private float spellCooldown = 0;
 
     public override void _Ready()
     {
@@ -25,6 +30,14 @@ public class PlayerController : Node2D
         bodySprite = GetNode<Sprite>("BodySprite");
     
         Mana = MaxMana;
+
+        spellManager = new SpellManager();
+        spellManager.LoadPrefabs();
+
+        equippedSpells = new List<Spell>
+        {
+            Spell.BasicHeal
+        };
     }
 
     public void Tick(float delta)
@@ -32,6 +45,8 @@ public class PlayerController : Node2D
         TickInput(delta);
         TickMovement(delta);
         TickSpells(delta);
+
+        ZIndex = Utils.GetZIndex(GlobalPosition);
 
 #if DEBUG
         Update();
@@ -52,12 +67,20 @@ public class PlayerController : Node2D
     private void TickSpells(float delta)
     {
         Mana = Mathf.Min(Mana + delta * ManaRegen, MaxMana);
+        spellCooldown = Mathf.Max(0, spellCooldown - delta);
 
-        if (Input.IsActionJustPressed("key_ability1") && Mana > 40)
+        // TODO: Move this into spellManager. Per-spell cooldowns
+        if (spellCooldown == 0)
         {
-            Mana -= 40;
-            GridManager.Instance.ForeachDelegateInRadius(Position,
-                100, HealSpell, GridNodeType.Ally);
+            if (Input.IsActionJustPressed("key_ability1") && Mana > 40)
+            {
+                Mana -= 40;
+                spellManager.CastSpell(GlobalPosition, Spell.BasicHeal);
+                GridManager.Instance.ForeachDelegateInRadius(Position,
+                    100, HealSpell, GridNodeType.Ally);
+
+                spellCooldown = 2;
+            }
         }
     }
 

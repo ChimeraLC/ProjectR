@@ -89,6 +89,9 @@ public partial class BaseUnit : GridNode
             // When dead, don't leave play, since can be 'revived'    
         }
 
+        // Y-Sort
+        ZIndex = Utils.GetZIndex(GetPosition());
+
 #if DEBUG
         Update();
 #endif // #if DEBUG

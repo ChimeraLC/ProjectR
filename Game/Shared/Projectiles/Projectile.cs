@@ -34,6 +34,7 @@ public class Projectile : Node2D
     private GridNode owner;
     private Vector2 startPos;
     private Vector2 endPos;
+    private Vector2 basePos;
     private float duration;
     private float distance;
     private Vector2 direction;
@@ -104,6 +105,8 @@ public class Projectile : Node2D
         Position = startPos;
         direction = endPos - startPos;
         duration = curReq.duration;
+
+        // TODO: Randomize the target position slightly
     }
 
     private void ArrowTick(float delta)
@@ -112,6 +115,8 @@ public class Projectile : Node2D
 
         if (curReq.target.InPlay == false)
             curReq.target = null;
+        else
+            endPos = curReq.target.GetPosition();
 
         if (travelProportion >= 1)
         {
@@ -123,7 +128,13 @@ public class Projectile : Node2D
         }
         else
         {
-            Position = startPos + travelProportion * direction;
+            // Simulating an arrow arc
+            Vector2 between = endPos - startPos;
+            basePos = startPos + between * travelProportion;
+
+            float arcHeight = -(2 * travelProportion - 1) * (2 * travelProportion - 1) + 1;
+
+            Position = basePos + arcHeight * 64 * Vector2.Up;
         }
     }
 }

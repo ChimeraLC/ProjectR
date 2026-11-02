@@ -18,4 +18,17 @@ public class BaseEnemyDummy : BaseEnemy
     public override void Tick(float delta)
     {
     }
+
+    protected override void TickAttack(float delta)
+    {
+    }
+
+    public override void UpdateHitbox()
+    {   
+        hitbox.center = GlobalPosition + new Vector2(0, -16);
+    }
+    
+    protected override void TickDeath(float delta)
+    {
+    }
 }
